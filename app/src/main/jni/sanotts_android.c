@@ -172,7 +172,8 @@ int sa_synthesize(const sa_voice *v, const char *espeak_voice, int g2p_slot,
     return n;
 }
 
-#ifdef __ANDROID__
+/* SA_JNI: build the JNI entry points for a desktop JVM (tests/host_test.py --jni). */
+#if defined(__ANDROID__) || defined(SA_JNI)
 #include <jni.h>
 
 #define JNI_FN(name) Java_com_ampixa_sanotts_tts_Native_##name

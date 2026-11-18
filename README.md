@@ -22,7 +22,8 @@ device or emulator, and has never been used with TalkBack.** See
   compiled unmodified from `third_party/sanotts/` (espeak-ng phonemizer,
   duration + acoustic model, decoder).
 * `app/src/main/assets/`: espeak-ng data and the voices.
-* `tests/`: host-side check of the same C against upstream's WebAssembly build.
+* `tests/`: host-side check of the same C, and of the JNI entry points on a
+  desktop JVM, against upstream's WebAssembly build.
 
 ## Languages and voices
 
@@ -85,7 +86,7 @@ only for the comparison against upstream):
 
 ```sh
 node tests/wasm_reference.mjs /path/to/sanoTTS app/src/main/assets/voices /tmp/ref
-python3 tests/host_test.py --reference /tmp/ref
+python3 tests/host_test.py --reference /tmp/ref --jni     # --jni needs JAVA_HOME
 ```
 
 ## Install and select
@@ -94,16 +95,17 @@ python3 tests/host_test.py --reference /tmp/ref
 adb install sanotts-debug.apk
 ```
 
-Then on the device:
+The steps below are what the manifest is written to support. They have not
+been tried on a device.
 
 1. Settings > Accessibility > Text-to-speech output (on some devices:
    Settings > System > Languages & input > Text-to-speech output).
 2. Preferred engine: choose **sanoTTS**.
-3. Language: choose one of the languages above. "Play" speaks a sample.
+3. Language: choose one of the languages above.
 4. TalkBack speaks with the preferred engine.
 
-Speech rate from the system setting is applied. Pitch is not: the runtime has
-no pitch control, so the pitch setting is ignored.
+The engine applies the system speech rate. It ignores the pitch setting: the
+runtime has no pitch control.
 
 ## Status
 
@@ -115,6 +117,10 @@ What has been checked, on a Mac (arm64), 2026-11-18:
   modules, sample counts are identical, PCM correlation with the WebAssembly
   output is 1.000000, and the float16 voices widen to the sha256 recorded in
   their `meta.json`. Clips are 1.4 to 5.0 s, RMS 0.02 to 0.13.
+* **JNI on a desktop JVM.** With `--jni`, the same test loads the app's own
+  `Native` class and JNI entry points in a desktop JVM (OpenJDK 17) and gets
+  PCM byte-identical to the C driver for all 12 voices. This exercises the JNI
+  marshalling, not ART or bionic.
 * **Native library.** `libsanotts_android.so` builds for `arm64-v8a` with NDK
   r27c through `jni/Android.mk`; the four JNI entry points are exported.
 * **APK.** A debug APK (47.7 MB, `arm64-v8a` only) was assembled with
@@ -129,13 +135,18 @@ What has not been done:
 * It has **not been tested with TalkBack**, and **not with blind or low-vision
   users**.
 * `./gradlew assembleDebug` has not been run. `armeabi-v7a` and `x86_64` have
-  not been built.
+  not been built, so the existing APK does not install on 32-bit-only phones,
+  which many low-cost devices are.
+* Whether the Settings "play sample" button works is unknown; the engine has
+  no `GET_SAMPLE_TEXT` activity.
 * Speed has not been measured on a phone. Latency matters more than quality
   for a screen reader; whether these 1.5 M-parameter float models are fast
   enough on low-end hardware is unknown. Upstream ships ~0.5 M-parameter
   variants of eight of the languages that could be substituted.
 * A stop request takes effect between pieces of text (up to 120 characters),
   not inside one.
+* A language change from a client waits for the utterance in progress, and a
+  synthesis error in one piece abandons the rest of that utterance.
 * No sample-text activity, no settings screen, no launcher icon.
 
 ## Licence
