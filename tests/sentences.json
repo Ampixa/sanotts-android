@@ -1,0 +1,16 @@
+{
+  "amy": ["Hello! I am a tiny voice living entirely in your phone.", "Settings, battery at 42 percent; three new messages."],
+  "german": ["Hallo! Ich bin eine winzige Stimme in deinem Telefon.", "Einstellungen, Akku bei 42 Prozent; drei neue Nachrichten."],
+  "french": ["Bonjour ! Je suis une toute petite voix dans votre téléphone.", "Paramètres, batterie à 42 pour cent ; trois nouveaux messages."],
+  "spanish": ["¡Hola! Soy una voz diminuta que vive en tu teléfono.", "Ajustes, batería al 42 por ciento; tres mensajes nuevos."],
+  "italian": ["Ciao! Sono una vocina che vive nel tuo telefono.", "Impostazioni, batteria al 42 per cento; tre nuovi messaggi."],
+  "portuguese": ["Olá! Sou uma vozinha que mora no seu telefone.", "Configurações, bateria em 42 por cento; três novas mensagens."],
+  "romanian": ["Salut! Sunt o voce mică ce trăiește în telefonul tău.", "Setări, baterie la 42 la sută; trei mesaje noi."],
+  "czech": ["Ahoj! Jsem malý hlas ve tvém telefonu.", "Nastavení, baterie na 42 procentech; tři nové zprávy."],
+  "turkish": ["Merhaba! Telefonunuzda yaşayan küçük bir sesim.", "Ayarlar, pil yüzde 42; üç yeni mesaj."],
+  "polish": ["Cześć! Jestem małym głosem żyjącym w twoim telefonie.", "Ustawienia, bateria 42 procent; trzy nowe wiadomości."],
+  "vietnamese": ["Xin chào! Hôm nay trời đẹp quá.", "Cài đặt, pin còn 42 phần trăm; ba tin nhắn mới."],
+  "indonesian": ["Selamat pagi! Hari ini cuaca sangat cerah.", "Setelan, baterai 42 persen; tiga pesan baru."],
+  "nepali": ["नमस्ते! आज मौसम धेरै राम्रो छ।", "सेटिङ, ब्याट्री ४२ प्रतिशत; तीन नयाँ सन्देश।"],
+  "hindi": ["नमस्ते! आज मौसम बहुत अच्छा है।", "सेटिंग, बैटरी 42 प्रतिशत; तीन नए संदेश।"]
+}
