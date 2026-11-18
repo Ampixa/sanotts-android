@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Debug builds only: an activity that can be started from adb to exercise the engine. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".SpeakTestActivity"
+            android:exported="true"
+            android:label="sanoTTS test" />
+    </application>
+</manifest>
