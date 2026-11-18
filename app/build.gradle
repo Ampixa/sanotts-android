@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ampixa.sanotts.tts'
+    compileSdk 34
+    ndkVersion '27.2.12479018'
+
+    defaultConfig {
+        applicationId 'com.ampixa.sanotts.tts'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+        ndk {
+            // 32-bit ARM is still what many low-cost phones run.
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
