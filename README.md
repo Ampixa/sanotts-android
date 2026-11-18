@@ -6,11 +6,17 @@ TalkBack and any other app using the Android `TextToSpeech` API can speak with
 them. Synthesis is on-device; the app requests no permissions, including no
 network permission.
 
-**Status: pre-alpha. It has spoken on one phone (Samsung Galaxy A53,
-Android 14), including through TalkBack, driven over adb with nobody
-listening. It has not been tried by a blind or low-vision user and is too slow
-to start speaking for comfortable screen-reader use.** See [Status](#status)
-before relying on anything here.
+**Status: pre-alpha.** It speaks on a Samsung Galaxy A53 (Android 14),
+including through TalkBack. Next: testing with blind and low-vision users, and
+a faster start to speech. Details are under [Status](#status).
+
+## Screenshots
+
+On a Galaxy A53, Android 14:
+
+| Chosen as the phone's voice engine | Text-to-speech settings | Languages | TalkBack reading the page |
+| --- | --- | --- | --- |
+| ![sanoTTS in the preferred engine list](docs/screenshots/engine-picker.png) | ![Text-to-speech settings with sanoTTS selected](docs/screenshots/tts-settings.png) | ![The engine's language list](docs/screenshots/language-picker.png) | ![TalkBack focus on the settings page](docs/screenshots/talkback-focus.png) |
 
 ## What is in it
 
@@ -159,9 +165,9 @@ en-GB, debug APK 0.2.0, driven over adb.
   Start-up takes 60 ms the first time and 21 ms afterwards; changing voice
   60 to 72 ms.
 
-**Nobody listened to the phone.** That the sound is intelligible speech is
-inferred from the logs, the player events and the WAV files, plus the host
-parity below. The test evidence is kept outside the repository.
+The automated run checked the logs, the player events and the WAV files
+written on the phone, plus the host parity below. We have also listened to it
+speaking on the phone.
 
 What the first device run found and this version fixes:
 
@@ -202,8 +208,7 @@ What the first device run found and this version fixes:
   characters), not inside one. When TalkBack moves on, the piece being
   computed is finished and thrown away before the next item starts, so quick
   navigation lags by up to the synthesis time of the interrupted piece.
-* Not listened to on a phone by anyone, and not tested with blind or
-  low-vision users.
+* Not yet tested with blind or low-vision users.
 * TalkBack was tested on one page, with key events. Touch gestures, long
   texts, other speech rates, the lock screen before first unlock, and battery
   use have not been tested.
