@@ -6,9 +6,11 @@ TalkBack and any other app using the Android `TextToSpeech` API can speak with
 them. Synthesis is on-device; the app requests no permissions, including no
 network permission.
 
-**Status: pre-alpha. The APK builds but has never been run on an Android
-device or emulator, and has never been used with TalkBack.** See
-[Status](#status) before relying on anything here.
+**Status: pre-alpha. It has spoken on one phone (Samsung Galaxy A53,
+Android 14), including through TalkBack, driven over adb with nobody
+listening. It has not been tried by a blind or low-vision user and is too slow
+to start speaking for comfortable screen-reader use.** See [Status](#status)
+before relying on anything here.
 
 ## What is in it
 
@@ -17,7 +19,13 @@ device or emulator, and has never been used with TalkBack.** See
   16-bit mono 22050 Hz PCM to the framework, checking for a stop request
   between pieces.
 * `app/src/main/java/.../CheckVoiceData.java`: answers
-  `android.speech.tts.engine.CHECK_TTS_DATA`.
+  `android.speech.tts.engine.CHECK_TTS_DATA` with the locales the engine
+  speaks.
+* `app/src/main/java/.../GetSampleText.java`: answers
+  `android.speech.tts.engine.GET_SAMPLE_TEXT` with one sentence per language,
+  for the Play button of the system settings.
+* `app/src/debug/.../SpeakTestActivity.java`: debug builds only. Speaks a
+  sentence through the engine and writes it to a WAV file, started from adb.
 * `app/src/main/jni/sanotts_android.c`: JNI glue over the upstream C, which is
   compiled unmodified from `third_party/sanotts/` (espeak-ng phonemizer,
   duration + acoustic model, decoder).
@@ -44,10 +52,17 @@ One voice per language, all 22.05 kHz:
 | Vietnamese | `vie-VNM` | vietnamese | float32 | 6.0 MB |
 | Indonesian | `ind-IDN` | indonesian | float32 | 6.0 MB |
 
+A user whose locale is another country of one of these languages gets that
+language's voice: en-GB, en-IN and the rest use the US English voice, es-MX
+the Spain Spanish voice, pt-PT the Brazilian voice, fr-CA the France French
+voice. The engine reports the language alone, the voice's own country, a list
+of common countries (`VOICES` in `SanoTtsService.java`) and the countries of
+the device's own locales.
+
 "Ships" here means: for each of these, the C in this repository produces
 phoneme ids identical to upstream's WebAssembly build and audio that matches
 it (see [Status](#status)). It does not mean the voice has been heard on a
-phone. Upstream's README has word-error-rate figures for most of these voices
+phone by a person. Upstream's README has word-error-rate figures for most of these voices
 (Polish has none) and notes that no listening test has been run on any
 non-English voice.
 
@@ -75,7 +90,8 @@ Requirements: JDK 17, Android SDK with `platforms;android-34`,
 ```
 
 The Gradle build has not been run yet (see [Status](#status)). The APK
-described below was produced by the equivalent manual pipeline:
+described below was produced by the equivalent manual pipeline, which also
+packages the debug-only test activity:
 
 ```sh
 ANDROID_HOME=/path/to/sdk tools/build-debug-apk.sh /path/to/outdir arm64-v8a
@@ -95,21 +111,71 @@ python3 tests/host_test.py --reference /tmp/ref --jni     # --jni needs JAVA_HOM
 adb install sanotts-debug.apk
 ```
 
-The steps below are what the manifest is written to support. They have not
-been tried on a device.
-
-1. Settings > Accessibility > Text-to-speech output (on some devices:
-   Settings > System > Languages & input > Text-to-speech output).
+1. Settings > Accessibility > Text-to-speech output (on Samsung: Settings >
+   General management > Text-to-speech).
 2. Preferred engine: choose **sanoTTS**.
-3. Language: choose one of the languages above.
-4. TalkBack speaks with the preferred engine.
+3. Language: leave "Use system language", or choose one of the languages
+   above.
+4. Play speaks a sample sentence. TalkBack speaks with the preferred engine.
 
 The engine applies the system speech rate. It ignores the pitch setting: the
 runtime has no pitch control.
 
+To test without changing the preferred engine (debug builds):
+
+```sh
+adb shell am start -n com.ampixa.sanotts.tts/.SpeakTestActivity --es lang es-MX
+adb logcat -s SanoTTS SanoTtsTest
+adb pull /sdcard/Android/data/com.ampixa.sanotts.tts/files/es-MX.wav
+```
+
+The engine logs to the `SanoTTS` tag: start-up, language queries, and for each
+utterance its length, voice, synthesis time and audio length. It never logs
+the text.
+
 ## Status
 
-What has been checked, on a Mac (arm64), 2026-11-18:
+### On a device, 2026-11-18
+
+One phone: Samsung Galaxy A53 5G (SM-A536E), Android 14, arm64, system locale
+en-GB, debug APK 0.2.0, driven over adb.
+
+* **It speaks.** For all 12 voices, and for en-GB, en-IN, es-MX, fr-CA and
+  pt-PT, a client using the `TextToSpeech` API got `onStart` and `onDone`
+  with no error, the audio server showed the engine's 22050 Hz player start
+  and stop, and `synthesizeToFile` wrote a valid WAV of 2.3 to 4.3 s with
+  speech-like levels.
+* **System settings.** The engine is listed and can be selected; with the
+  en-GB system locale, and with German or Spanish (Mexico) chosen, Play is
+  enabled and plays the sample sentence.
+* **TalkBack.** With Samsung TalkBack on and sanoTTS preferred, TalkBack's
+  utterances reached the engine and were played while focus moved over one
+  settings page (about 20 utterances, moved with key events).
+* **Speed.** Synthesis takes 0.26 to 0.41 of the audio's duration. A piece of
+  text is computed whole before any of it plays, so the time to first sound
+  was 0.2 s for a 3-character item, 0.5 to 1.1 s for 21 to 24 characters,
+  1.3 to 1.5 s for a 50-character English sentence (0.6 to 1.2 s in the other
+  languages) and 3.6 s for the first piece of a 206-character announcement.
+  Start-up takes 60 ms the first time and 21 ms afterwards; changing voice
+  60 to 72 ms.
+
+**Nobody listened to the phone.** That the sound is intelligible speech is
+inferred from the logs, the player events and the WAV files, plus the host
+parity below. The test evidence is kept outside the repository.
+
+What the first device run found and this version fixes:
+
+* With a system locale such as en-GB the settings page greyed out Play and
+  the sliders, because `CHECK_TTS_DATA` listed only `eng-USA` and Android
+  wants the user's exact locale in that list.
+* There was no `GET_SAMPLE_TEXT` activity; with a US English locale Play was
+  enabled but silent.
+* Voices are now declared explicitly (`onGetVoices`, `onGetDefaultVoiceNameFor`,
+  `onLoadVoice`), one per language, so every country of a language resolves to
+  the same voice.
+* The engine logged nothing unless it failed.
+
+### On a Mac (arm64), 2026-11-18
 
 * **Host parity.** `tests/host_test.py` compiles the vendored C and
   `sanotts_android.c` natively and synthesises two sentences per voice. For
@@ -119,35 +185,38 @@ What has been checked, on a Mac (arm64), 2026-11-18:
   their `meta.json`. Clips are 1.4 to 5.0 s, RMS 0.02 to 0.13.
 * **JNI on a desktop JVM.** With `--jni`, the same test loads the app's own
   `Native` class and JNI entry points in a desktop JVM (OpenJDK 17) and gets
-  PCM byte-identical to the C driver for all 12 voices. This exercises the JNI
-  marshalling, not ART or bionic.
-* **Native library.** `libsanotts_android.so` builds for `arm64-v8a` with NDK
-  r27c through `jni/Android.mk`; the four JNI entry points are exported.
-* **APK.** A debug APK (47.7 MB, `arm64-v8a` only) was assembled with
-  `tools/build-debug-apk.sh` and passes `apksigner verify`. `aapt2 dump
-  permissions` lists none. The Java compiles against the API 34 `android.jar`.
+  PCM byte-identical to the C driver for all 12 voices.
+* **APK.** A debug APK (47.7 MB, `arm64-v8a` only) is assembled with
+  `tools/build-debug-apk.sh` and passes `apksigner verify`. It requests no
+  permissions. The 0.2.0 APK reuses the native library built for 0.1.0 with
+  NDK r27c (`PREBUILT_LIB_DIR`); the native sources have not changed.
 
-What has not been done:
+### Known limits
 
-* The APK has **not been installed or run** on any device or emulator. The JNI
-  layer, the Java service, asset extraction and the manifest wiring are
-  therefore untested at run time.
-* It has **not been tested with TalkBack**, and **not with blind or low-vision
-  users**.
-* `./gradlew assembleDebug` has not been run. `armeabi-v7a` and `x86_64` have
-  not been built, so the existing APK does not install on 32-bit-only phones,
-  which many low-cost devices are.
-* Whether the Settings "play sample" button works is unknown; the engine has
-  no `GET_SAMPLE_TEXT` activity.
-* Speed has not been measured on a phone. Latency matters more than quality
-  for a screen reader; whether these 1.5 M-parameter float models are fast
-  enough on low-end hardware is unknown. Upstream ships ~0.5 M-parameter
-  variants of eight of the languages that could be substituted.
-* A stop request takes effect between pieces of text (up to 120 characters),
-  not inside one.
+* **Too slow to start speaking for a screen reader.** See the figures above;
+  a mid-range 2022 phone needs over a second for a sentence. Cheaper phones
+  will be slower. Upstream ships ~0.5 M-parameter variants of eight of the
+  languages that could be substituted, and text could be cut into shorter
+  first pieces.
+* **A stop request takes effect between pieces of text** (up to 120
+  characters), not inside one. When TalkBack moves on, the piece being
+  computed is finished and thrown away before the next item starts, so quick
+  navigation lags by up to the synthesis time of the interrupted piece.
+* Not listened to on a phone by anyone, and not tested with blind or
+  low-vision users.
+* TalkBack was tested on one page, with key events. Touch gestures, long
+  texts, other speech rates, the lock screen before first unlock, and battery
+  use have not been tested.
+* One phone, one Android version. `armeabi-v7a` and `x86_64` have not been
+  built, so the APK does not install on 32-bit-only phones, which many
+  low-cost devices are. `./gradlew assembleDebug` has not been run.
 * A language change from a client waits for the utterance in progress, and a
   synthesis error in one piece abandons the rest of that utterance.
-* No sample-text activity, no settings screen, no launcher icon.
+* One voice per language: British, Indian, Mexican, European Portuguese and
+  Canadian French users hear the US, Spain, Brazil and France voices.
+* The pitch setting is ignored. No settings screen, no launcher icon.
+* Debug-signed only; an update installs only over a build signed with the
+  same debug keystore.
 
 ## Licence
 
